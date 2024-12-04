@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - dataset:/data
     deploy:
       resources:
         reservations:
@@ -11,3 +13,18 @@ services:
               count: all
               capabilities: [ gpu ]
     command: tail -F anything
+  neunet_cpu:
+    build:
+      context: .
+      dockerfile: DockerfileCPU
+    volumes:
+      - dataset:/data
+    command: tail -F anything
+
+volumes:
+  dataset:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: .
