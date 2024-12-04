@@ -7,7 +7,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install Python and pip
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.10 \
-    python3-pip
+    python3-pip \
+    git
 
 # Install PyTorch and torchvision with CUDA support
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
