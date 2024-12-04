@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - dataset:/data
+      - ./how2sign:/data
     deploy:
       resources:
         reservations:
@@ -18,13 +18,5 @@ services:
       context: .
       dockerfile: DockerfileCPU
     volumes:
-      - dataset:/data
+      - ./how2sign:/data
     command: tail -F anything
-
-volumes:
-  dataset:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./how2sign
