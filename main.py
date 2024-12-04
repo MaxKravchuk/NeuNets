@@ -1,3 +1,4 @@
+from math import floor
 import torch
 from torchvision.transforms import functional as F
 import cv2
@@ -49,7 +50,7 @@ def batch_process_frames(model, base_frames_folder, output_base_folder):
     output_base_folder = Path(output_base_folder)
     frames_subfolders = [x for x in base_frames_folder.iterdir() if x.is_dir()]
     for frames_folder in track(frames_subfolders, total = len(frames_subfolders), description="Processing frames"):
-        output_folder = output_base_folder / frames_folder
+        output_folder = output_base_folder / frames_folder.stem
         process_frames(model, frames_folder, output_folder)
 
 def process_frames(model, frames_folder, output_folder, device=None):
@@ -57,17 +58,18 @@ def process_frames(model, frames_folder, output_folder, device=None):
     output_folder = Path(output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
 
-    if device is None:
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    model.to(device)
+    # if device is None:
+    #     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    # model.to(device)
 
     frame_files = sorted(frames_folder.iterdir())
     for frame_id, frame_file in enumerate(frame_files):
         if frame_file.is_file() and frame_file.suffix.lower() in ['.jpg', '.png']:
             image = cv2.imread(str(frame_file))
-            predictions = get_hand_boxes(model, image, device)
-            boxes = filter_predictions(predictions, threshold=0.5)
-            crop_hands(image, boxes, output_folder, frame_id)
+            detect_hands(model, image, output_folder, frame_id)
+            # predictions = get_hand_boxes(model, image, device)
+            # boxes = filter_predictions(predictions, threshold=0.5)
+            # crop_hands(image, boxes, output_folder, frame_id)
 
 def crop_hands(image, boxes, output_folder, frame_id):
     for idx, box in enumerate(boxes):
@@ -77,6 +79,24 @@ def crop_hands(image, boxes, output_folder, frame_id):
         hand_crop = image[ymin:ymax, xmin:xmax]
         crop_path = output_folder / f"frame_{frame_id:05d}_hand_{idx}.jpg"
         cv2.imwrite(str(crop_path), hand_crop)
+
+def detect_hands(cvNet, img, output_folder, frame_id):
+    rows = img.shape[0]
+    cols = img.shape[1]
+    cvNet.setInput(cv2.dnn.blobFromImage(img, size=(256, 256), swapRB=True, crop=True))
+    cvOut = cvNet.forward()
+    for idx, detection in enumerate(cvOut[0,0,:,:]):
+        score = float(detection[2])
+        if score > 0.3:
+            left = floor(detection[3] * cols)
+            top = floor(detection[4] * rows)
+            right = floor(detection[5] * cols)
+            bottom = floor(detection[6] * rows)
+            print(f"left: {left}, top: {top}, right: {right}, bottom: {bottom}")
+            # cv.rectangle(img, (int(left), int(top)), (int(right), int(bottom)), (23, 230, 210), thickness=2)
+            hand_crop = img[top:bottom, left:right]    
+            crop_path = output_folder / f"frame_{frame_id:05d}_hand_{idx}.jpg"
+            cv2.imwrite(str(crop_path), hand_crop)
 
 def get_hand_boxes(model, image, device):
     # Transform the image
@@ -91,6 +111,7 @@ def get_hand_boxes(model, image, device):
     return predictions[0]
 
 def filter_predictions(predictions, threshold=0.5):
+    print(predictions)
     boxes = predictions['boxes']
     scores = predictions['scores']
     selected_indices = scores > threshold
@@ -103,15 +124,19 @@ def main():
     processed_frames_folder = '/data/val_rgb_front_clips/processed/'
     desired_fps = 6
 
-    batch_extract_frames(raw_video_path, frames_folder, desired_fps)
+    # batch_extract_frames(raw_video_path, frames_folder, desired_fps)
     model = load_hand_detection_model()
     batch_process_frames(model, frames_folder, processed_frames_folder)
 
 def load_hand_detection_model():
     import torchvision
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-    model.eval()
-    return model
+    cvNet = cv2.dnn.readNetFromTensorflow('/data/frozen_inference_graph.pb', '/data/graph.pbtxt')
+    #cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+    cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+    cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)    
+    # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    # model.eval()
+    return cvNet
 
 if __name__ == "__main__":
     main()
