@@ -27,4 +27,4 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: .
+      device: ./how2sign
