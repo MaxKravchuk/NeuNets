@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install PyTorch and torchvision with CUDA support
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 
 # Set the working directory
 WORKDIR /app
