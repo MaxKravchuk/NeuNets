@@ -4,7 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./how2sign:/data
+      - .:/app
+    ports:
+      - "2718:2718" # Maps host port 8080 to container port 80
     deploy:
       resources:
         reservations:
@@ -12,11 +14,3 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
-    command: tail -F anything
-  neunet_cpu:
-    build:
-      context: .
-      dockerfile: DockerfileCPU
-    volumes:
-      - ./how2sign:/data
-    command: tail -F anything

@@ -1,21 +1,24 @@
-# Use NVIDIA's CUDA runtime as the base image
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+# Use the official TensorFlow GPU image
+FROM tensorflow/tensorflow:latest-gpu
 
 # Set environment variables to prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python and pip
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.10 \
-    python3-pip \
-    git
-
-# Install PyTorch and torchvision with CUDA support
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
-
-# Set the working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy your project files into the container
-COPY . /app
+# Install additional dependencies if needed
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    python3.10 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy your application code to the container
+COPY requirements.txt /app
+
+# Install required Python packages
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Set the default command to run your application
+CMD ["marimo", "edit", "project.py", "-p", "2718", "--host", "0.0.0.0"]

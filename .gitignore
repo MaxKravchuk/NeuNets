@@ -1,1 +1,7 @@
 how2sign
+.kaggle
+asl_dataset_split
+.ipynb_checkpoints
+__pycache__
+weights
+weights_backup

@@ -1,1 +1,8 @@
 how2sign
+Dockerfile
+DockerfileCPU
+docker-compose.yaml
+.kaggle
+.ipynb_checkpoints
+__pycache__
+asl_dataset_split

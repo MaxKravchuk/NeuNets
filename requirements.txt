@@ -1,0 +1,8 @@
+tensorflow
+split-folders
+kagglehub
+marimo
+matplotlib
+pandas
+numpy
+# scipy
