@@ -1,7 +1,11 @@
 import marimo
 
 __generated_with = "0.10.9"
-app = marimo.App(width="medium", auto_download=["ipynb"])
+app = marimo.App(
+    width="medium",
+    layout_file="layouts/project.slides.json",
+    auto_download=["ipynb"],
+)
 
 
 @app.cell
@@ -642,6 +646,122 @@ def _(r101_base_model, resnet_with_cnn, test_data, weights_dir):
 
     print(test_model.evaluate(test_data, verbose=0))
     return (test_model,)
+
+
+@app.cell
+def _(mo):
+    mo.md("""## Plots and Charts for Report""")
+    return
+
+
+@app.cell
+def _():
+    local_vars = dict(locals()).items()
+    histories = []
+    for var_name, var_value in local_vars:
+        if var_name.startswith("history_"):
+            histories.append({
+                "name": var_name[len("history_"):],
+                "accuracy": var_value.history["accuracy"],
+                "val_accuracy": var_value.history["val_accuracy"]
+            })
+    return histories, local_vars, var_name, var_value
+
+
+@app.cell
+def _(histories, plt):
+    # Prepare the plots
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+
+    # Colors for differentiation
+    colors = plt.cm.tab10(range(9))
+
+    # Plot accuracy
+    for i, history in enumerate(histories):
+        axes[0].plot(history["accuracy"], label=f"{history['name']}", color=colors[i])
+    axes[0].set_title("Training Accuracy")
+    axes[0].set_xlabel("Epoch")
+    axes[0].set_ylabel("Accuracy")
+    axes[0].legend()
+
+    # Plot validation accuracy
+    for i, history in enumerate(histories):
+        axes[1].plot(history["val_accuracy"], label=f"{history['name']}", color=colors[i])
+    axes[1].set_title("Validation Accuracy")
+    axes[1].set_xlabel("Epoch")
+    axes[1].set_ylabel("Accuracy")
+    axes[1].legend()
+
+    plt.tight_layout()
+    plt.show()
+    return axes, colors, fig, history, i
+
+
+@app.cell
+def _(pd, r101_results_df, results_df, v2_results_df):
+    all_results_df = pd.concat([results_df, v2_results_df , r101_results_df], axis=0)
+
+    # Update with values from Nora's run
+    all_results_df.loc[all_results_df["Model"] == "ResNet50 + RNN", "Validation Accuracy"] = .64
+    all_results_df.loc[all_results_df["Model"] == "ResNet50 + RNN", "Test Accuracy"] = 0.75
+
+    all_results_df.loc[all_results_df["Model"] == "ResNet50 + CNN", "Validation Accuracy"] = .49
+    all_results_df.loc[all_results_df["Model"] == "ResNet50 + CNN", "Test Accuracy"] = 0.56
+
+    all_results_df.loc[all_results_df["Model"] == "Hybrid ResNet50 (CNN + RNN)", "Validation Accuracy"] = .65
+    all_results_df.loc[all_results_df["Model"] == "Hybrid ResNet50 (CNN + RNN)", "Test Accuracy"] = 0.79
+
+
+    all_results_df = all_results_df.round(2)
+
+    all_results_df
+    return (all_results_df,)
+
+
+@app.cell
+def _(all_results_df, np, plt):
+    def grouped_bar(col_name):
+        # Data
+        barWidth = 0.25
+        bars3 = all_results_df.loc[all_results_df["Model"].str.contains("Hybrid"), col_name]
+        bars2 = all_results_df.loc[all_results_df["Model"].str.contains("\+ CNN"), col_name]
+        bars1 = all_results_df.loc[all_results_df["Model"].str.endswith("RNN"), col_name]
+        
+        # Bar positions
+        r = np.arange(len(bars1))
+        r2 = r + barWidth
+        r3 = r2 + barWidth
+        
+        # Plotting
+        _, ax1 = plt.subplots(dpi=300)
+        ax1.bar(r, bars1, color='red', width=barWidth, edgecolor='white', label='ResNet50')
+        ax1.bar(r2, bars2, color='blue', width=barWidth, edgecolor='white', label='ResNet50v2')
+        ax1.bar(r3, bars3, color='green', width=barWidth, edgecolor='white', label='ResNet101v2')
+        
+        # Xticks
+        ax1.set_xticks(r + barWidth)
+        ax1.set_xticklabels(['RNN', 'CNN', 'Hybrid'])
+        
+        ax1.set_ylim((0,1))
+        
+        ax1.set_title(col_name)
+        
+        # Legend and show
+        ax1.legend()
+        plt.show()
+    return (grouped_bar,)
+
+
+@app.cell
+def _(grouped_bar):
+    grouped_bar("Validation Accuracy")
+    return
+
+
+@app.cell
+def _(grouped_bar):
+    grouped_bar("Test Accuracy")
+    return
 
 
 if __name__ == "__main__":
